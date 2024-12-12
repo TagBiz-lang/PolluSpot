@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Training</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f9fafc;
+            margin: 0;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+        }
+
+        h1 {
+            text-align: center;
+            color: #2b6bbe;
+            margin: 5px 0;
+        }
+
+        h2 {
+            text-align: center;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .container {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 10px;
+            overflow-y: auto;
+            max-height: 60vh;
+            padding: 10px;
+        }
+
+        .image-card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            padding: 5px;
+            text-align: center;
+            width: 150px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .image-card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .image-card img {
+            width: 100%;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+
+        .features {
+            background-color: #f4f4f4;
+            border-radius: 8px;
+            padding: 5px;
+            margin-top: 5px;
+            text-align: left;
+            font-size: 10px;
+        }
+
+        .radio-group {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 5px;
+        }
+
+        label {
+            font-size: 12px;
+            color: #333;
+        }
+
+        .button {
+            margin-top: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+
+        .button[disabled] {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .change-button {
+            background-color: #2196F3;
+        }
+
+        .retry-button {
+            background-color: #FF9800;
+        }
+
+        .end-button {
+            background-color: #FF0000;
+        }
+
+        .button:hover {
+            transform: translateY(-2px);
+        }
+
+        #result {
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        /* Flexbox to align buttons side by side */
+        .button-container {
+            display: flex;
+            justify-content: center;
+            gap: 10px; /* Adjust space between buttons */
+            margin-top: 20px;
+        }
+
+        @media (max-height: 600px) {
+            body {
+                padding: 5px;
+            }
+
+            .container {
+                max-height: 50%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>PolluSpot</h1>
+    <h2>A Decision Tree is a predictive supervised machine learning model for classification tasks.<br>Select your choice from the images below to train the model.</h2>
+
+    <form method="GET" action="/training">
+        <button type="submit" class="button change-button">Load New Images</button>
+    </form>
+
+    <form method="POST" id="training-form" action="/training" data-total-images="{{ images | length }}">
+        <div class="container">
+            {% for image in images %}
+            <div class="image-card">
+                <img src="{{ url_for('static', filename='images/' + image['Name']) }}" alt="Image">
+                <input type="hidden" name="image_names" value="{{ image['Name'].split('.')[0] }}">
+                <input type="hidden" name="features_{{ image['Name'].split('.')[0] }}"
+                       value="{{ image['Smoke'] }},{{ image['Garbage'] }},{{ image['DirtyWater'] }},{{ image['Dull'] }},{{ image['Grass'] }},{{ image['Tree'] }}">
+
+                <div class="features">
+                    <p><strong>Features:</strong></p>
+                    <ul style="list-style-type: none; padding: 0; margin: 0;">
+                        <li>Smoke: {{ image['Smoke'] }}</li>
+                        <li>Garbage: {{ image['Garbage'] }}</li>
+                        <li>DirtyWater: {{ image['DirtyWater'] }}</li>
+                        <li>Dull: {{ image['Dull'] }}</li>
+                        <li>Grass: {{ image['Grass'] }}</li>
+                        <li>Tree: {{ image['Tree'] }}</li>
+                    </ul>
+                </div>
+
+                <div class="radio-group">
+                    <label>
+                        <input type="radio" name="label_{{ image['Name'].split('.')[0] }}" value="1"
+                            {% if selections.get(image['Name'].split('.')[0], '') == 1 %}checked{% endif %}>
+                        Polluted
+                    </label>
+                    <label>
+                        <input type="radio" name="label_{{ image['Name'].split('.')[0] }}" value="0"
+                            {% if selections.get(image['Name'].split('.')[0], '') == 0 %}checked{% endif %}>
+                        Unpolluted
+                    </label>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div style="text-align: center; margin-top: 20px;">
+            <button type="submit" class="button train-button" id="train-button" disabled>Train Model</button>
+        </div>
+    </form>
+
+    <div id="result">
+        {% if prediction %}
+        <h2>Test Image Prediction: {{ prediction }}</h2>
+        <img src="{{ url_for('static', filename='images/' + test_image) }}" width="150" height="150">
+
+        <form method="POST" action="/retry">
+            {% for image in images %}
+                <input type="hidden" name="image_names" value="{{ image['Name'].split('.')[0] }}">
+                <input type="hidden" name="features_{{ image['Name'].split('.')[0] }}"
+                       value="{{ image['Smoke'] }},{{ image['Garbage'] }},{{ image['DirtyWater'] }},{{ image['Dull'] }},{{ image['Grass'] }},{{ image['Tree'] }}">
+                <input type="hidden" name="label_{{ image['Name'].split('.')[0] }}"
+                       value="{{ selections.get(image['Name'].split('.')[0], '') }}">
+            {% endfor %}
+            <div class="button-container">
+                <button type="submit" class="button retry-button">Test Again</button>
+                <!-- End Game Button Fixed -->
+        </form>
+                <form method="GET" action="https://utsa.az1.qualtrics.com/jfe/form/SV_ex6b2dXcqLu6H1Y" target="_blank">
+                    <button type="submit" id="end-button" class="button end-button">End Game</button>
+                </form>
+            </div>
+        {% endif %}
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('training-form');
+            const trainButton = document.getElementById('train-button');
+
+            const totalImages = parseInt(form.dataset.totalImages, 10);
+
+            form.addEventListener('change', () => {
+                const allSelected = Array.from(form.querySelectorAll('input[type="radio"]:checked')).length === totalImages;
+                trainButton.disabled = !allSelected;
+            });
+        });
+    </script>
+</body>
+</html>
