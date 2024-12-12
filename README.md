@@ -1,1 +1,3 @@
 # PolluSpot
+
+PolluSpot, an innovative educational tool, was developed to engage middle school students in learning supervised machine learning through decision tree models. Using real-world environmental datasets of polluted and unpolluted images, PolluSpot combines interactive learning with environmental awareness. Students train the AI by labeling images as either polluted or unpolluted based on features such as smoke, garbage, dirty water, dull, grass and tree, they observed how their input influences the model's predictions. The study evaluates PolluSpot’s effectiveness in enhancing AI literacy among students in grades 6-8.
